@@ -30,7 +30,7 @@ namespace Pferderennen
         private const int Ziellinie = 50;      // Länge der Rennstrecke in Metern
         private const int MinSchritt = 1;      // kleinstmögliche Schrittweite pro Runde
         private const int MaxSchritt = 9;      // größtmögliche Schrittweite pro Runde
-        private const int RundenPauseMs = 400; // kurze Pause zwischen den Runden, damit man mitlesen kann
+        private const int RundenPauseMs = 800; // kurze Pause zwischen den Runden, damit man mitlesen kann
 
         static void Main(string[] args)
         {
@@ -45,14 +45,14 @@ namespace Pferderennen
 
             Random zufall = new Random();
             int runde = 0;
-            Pferd gewinner = null;
+            List<Pferd> gewinnerListe = new List<Pferd>();
 
             Console.WriteLine("=== Pferderennen ===");
             Console.WriteLine($"Ziellinie: {Ziellinie} Meter");
             Console.WriteLine($"Teilnehmer: {string.Join(", ", pferde.Select(p => p.Name))}");
             Console.WriteLine();
 
-            while (gewinner == null)
+            while (gewinnerListe.Count == 0)
             {
                 runde++;
                 Console.WriteLine($"Runde {runde}");
@@ -68,24 +68,52 @@ namespace Pferderennen
                 Console.WriteLine();
 
                 // Alle Pferde ermitteln, die die Ziellinie in dieser Runde erreicht oder überschritten haben.
-                // Kommen mehrere gleichzeitig ins Ziel, gewinnt das Pferd mit der größten Position.
-                gewinner = pferde
-                    .Where(p => p.Position >= Ziellinie)
-                    .OrderByDescending(p => p.Position)
-                    .FirstOrDefault();
+                List<Pferd> pferdeImZiel = pferde.Where(p => p.Position >= Ziellinie).ToList();
 
-                if (gewinner == null)
+                if (pferdeImZiel.Count > 0)
+                {
+                    // Von den angekommenen Pferden gewinnen die mit der größten Position.
+                    // Haben davon mehrere exakt dieselbe Position, ist es ein Unentschieden.
+                    int bestePosition = pferdeImZiel.Max(p => p.Position);
+                    gewinnerListe = pferdeImZiel.Where(p => p.Position == bestePosition).ToList();
+                }
+
+                if (gewinnerListe.Count == 0)
                 {
                     Thread.Sleep(RundenPauseMs);
                 }
             }
 
             Console.WriteLine("**********************************");
-            Console.WriteLine($"  {gewinner.Name} gewinnt das Rennen!");
+            if (gewinnerListe.Count == 1)
+            {
+                Console.WriteLine($"  {gewinnerListe[0].Name} gewinnt das Rennen!");
+            }
+            else
+            {
+                string namen = NamenAufzaehlen(gewinnerListe);
+                Console.WriteLine($"  Unentschieden zwischen {namen}!");
+                Console.WriteLine($"  (jeweils {gewinnerListe[0].Position} Meter)");
+            }
             Console.WriteLine("**********************************");
             Console.WriteLine();
             Console.WriteLine("Drücke eine beliebige Taste zum Beenden...");
             Console.ReadKey();
+        }
+
+        /// Verbindet die Namen mehrerer Pferde zu einer lesbaren Aufzählung, z. B. "Blitz und Sturm" oder "Blitz, Sturm und Donner".
+        static string NamenAufzaehlen(List<Pferd> liste)
+        {
+            List<string> namen = liste.Select(p => p.Name).ToList();
+
+            if (namen.Count == 1)
+            {
+                return namen[0];
+            }
+
+            string alleAusserLetztem = string.Join(", ", namen.Take(namen.Count - 1));
+            string letzterName = namen[namen.Count - 1];
+            return $"{alleAusserLetztem} und {letzterName}";
         }
     }
 }
